@@ -1,24 +1,21 @@
 ---
-title: "Where in the World is Taylor Swift?"
+title: "Sotera Twitter Analysis"
 author: "Jeffrey Uslan"
-date: "September 25, 2015"
-output: pdf_document
+date: "October 5, 2015"
+output: ioslides_presentation
 ---
 
-#Synopsis
-The goal of this analysis is to identify a single twitter user with a high volume of tweets which are also geotagged. The data has been acquired using the "streamR" package in the R statistical programming environment. This package allows are to interface with the twitter API. The processed tweets will be divided into 100 bins according to latitudinal and longitudinal coordinates. Probabilities will be assigned simply by percent of tweets submitted from that grid location.
 
-#Deliverables
-Along with this report the following items will be delivered for review by Sotera staff.
+##Synopsis
 
-- Analysis code
-- Analysis data
-- Output probabilites
+The goal of this analysis is to identify a single twitter user with a high volume of tweets which are also geotagged. The data has been acquired using the "streamR" package in the R statistical programming environment. This package allows are to interface with the twitter API. 
 
-#Settings and Libraries
+The processed tweets will be divided into 100 bins according to latitudinal and longitudinal coordinates. Probabilities will be assigned simply by percent of tweets submitted from that grid location.
 
 
-```{r, warning=FALSE, message=FALSE}
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 library(streamR)
 library(Rfacebook)
 library(smappR)
@@ -31,21 +28,26 @@ library(grid)
 library(maps)
 library(dplyr)
 library(tidyr)
+library(pander)
+
 ```
 
-#Identifying a User
+##Identifying a User
 
 The top 3 followed twitter users without political ramifications were considered (President Barack Obama is the 3 most followed user at the writing of this report). The users to be considered are Katy Perry, Justin Bieber, and Taylor Sqift. 
 
-```{r}
+```{r pander , echo=FALSE}
 potential_users=c("katyperry","justinbieber","taylorswift13")
 user_ids=c("21447363","27260086","17919972")
 potential_user.df=data.frame(potential_users,user_ids)
+pander(potential_user.df)
 ```
+
+## Sampling Queries
 
 Before commiting computational resources a sampling of each potential subject is taken. This takes the form of 20 minutes of access with the twitter API. For development purposes it is critically important that the owner of the application is a follower of any queried user. 
 
-```{r , eval=FALSE}
+```{r , eval=FALSE, echo=FALSE}
 for (i in 1:nrow(potential_user.df)){
   user=as.character(potential_user.df$potential_users[i])
   user_id=as.character(potential_user.df$user_ids[i])
@@ -65,9 +67,8 @@ for (i in 1:nrow(potential_user.df)){
 }
 ```
 
-Below we assess the validity of the potential subjects.
 
-```{r}
+```{r echo=FALSE}
 
 tweet_tot_n=NULL
 tweet_geo_n=NULL
@@ -85,21 +86,21 @@ for (i in 1:nrow(potential_user.df)){
   
 }
 potential_user.df=data.frame(potential_user.df,
-                             Total_sample=tweet_tot_n,
-                             Geo_tagged_count=tweet_geo_n,
-                             Geo_lat_sd=tweet_geo_lat_sd,
-                             Geo_lon_sd=tweet_geo_lon_sd)
+                             Samples=tweet_tot_n,
+                             Geo_Tagged=tweet_geo_n,
+                             Lat_SD=tweet_geo_lat_sd,
+                             Lon_SD=tweet_geo_lon_sd)
 
-print(potential_user.df[,c(1,3:6)])
+pander(potential_user.df[,c(1,3:6)])
 ```
 
-From this table we decide to proceed with Taylor Swift as the subject of analysis. She has the same amount of geotagged tweets as Katy Perry and the greatest geographic variability.
+From this table we decide to proceed with Taylor Swift as the subject of analysis. She has the most geotagged tweets and the greatest geographic variability.
 
 
-#Gathering Data
-Now that Taylor Swift has been identified as the ideal analysis subject we can dedicate more resources to gathering her data. This will take the form of  three hours of wall clock time to gather data. The twitter API is highly sensitive to unstable bandwidth so it is recommonded that short queries be submitted and saved periodically. The code below executes 180 minute queries. 
+## Gathering Data
+Now that Taylor Swift has been identified as the ideal analysis subject we can dedicate more resources to gathering her data. This will take the form of  3 hours of wall clock time to gather data. The twitter API is highly sensitive to unstable bandwidth so it is recommonded that short queries be submitted and saved periodically. 
 
-```{r , eval=FALSE}
+```{r , eval=FALSE, echo=FALSE}
 user="taylorswift13"
 user_id="17919972"
 
@@ -115,8 +116,8 @@ for (i in 1:minutes){
 }
 ```
 
-Now we combine the new results with the intitial sample and remove duplicates.
-```{r, eval=FALSE}
+
+```{r, eval=FALSE, echo=FALSE}
 save(tweets3.df, file=paste0("./",user,"3.rda"))
 
 load(paste0("./",user,"2.rda"))
@@ -130,28 +131,33 @@ save(final_data, file=paste0("./final_data.rda"))
 load(paste0("./final_data.rda"))
 ```
 
-#The Final Data
+##The Final Data
 
 The final dataset has 1211 tweets, 53 of which are geotagged. All other tweets are removed for the analysis.
 
-```{r}
+```{r, echo=FALSE}
 final_data=final_data[!is.na(final_data$place_lat),]
 final_data=final_data[!is.na(final_data$place_lon),]
 ```
 
-Summaries of the final data.
 
-```{r}
+```{r echo=FALSE}
 final_data=tbl_df(final_data)
-final_data %>% summarise(Min_Latitude=min(place_lat),Max_Latitude=max(place_lat),
-                         SD_Latitude=sd(place_lat))
-final_data %>% summarise(Min_Longitude=min(place_lon),Max_Longitude=max(place_lon),
-                         SD_Longitude=sd(place_lon))
+pander(final_data %>% summarise(Min_Latitude=round(min(place_lat),1),
+                         Max_Latitude=round(max(place_lat),1),
+                         SD_Latitude=round(sd(place_lat),1)))
+                         
+pander(final_data %>% summarise(Min_Longitude=round(min(place_lon),1),
+                         Max_Longitude=round(max(place_lon),1),
+                         SD_Longitude=round(sd(place_lon),1)))
 ```
 
+
+
+## Distribution Plot
 The plot below shows the origin locations of the 53 tweets in this study
 
-```{r}
+```{r, echo=FALSE}
 map.data <- map_data(map="world")
 points <- data.frame(x = as.numeric(final_data$place_lon), y = as.numeric(final_data$place_lat))
 ggplot(map.data) + 
@@ -160,10 +166,9 @@ ggplot(map.data) +
   ggtitle("Locations of Taylor Swift's Tweets")+xlab("Longitude")+ylab("Latitude")
 ```
 
-#Dividing the grid
-Next we divide the observed geotagged data into 100 evenly sized grids.
 
-```{r}
+
+```{r, echo=FALSE}
 grids_x=10
 lon_min=floor(min(final_data$place_lon))
 lon_max=ceiling(max(final_data$place_lon))
@@ -182,41 +187,42 @@ for (i in 2:(grids_x+1)){
   final_data$lat_grid[lat_ind]=(i-1)
 }
 
-final_data$grid=paste(final_data$lat_grid,final_data$lon_grid)
+final_data$Grid=paste0("(",final_data$lat_grid,",",final_data$lon_grid,")")
 ```
 
 
 
-#Grid Distributions
-
+##Grid Distributions
 The following table shows the distibution of paired grid locations.
-```{r}
-final_data %>% group_by(grid) %>% summarise(Count=n(),
-                                            Probability=round(n()/nrow(final_data),4),                            
-                                            Longitude_Minimum=min(place_lon),
-                                            Longitude_Maximum=max(place_lon),
-                                            Latitude_Minimum=min(place_lat),
-                                            Latitude_Maximum=max(place_lat)) %>% 
-  arrange(desc(Count))
+```{r  echo=FALSE}
+pander(head(final_data %>% group_by(Grid) %>% summarise(Count=n(),
+                                Probability=round((n()/nrow(final_data)),2),                  
+                                Longitude_Mean=round(mean(place_lon),1),
+                                Latitude_Mean=round(mean(place_lat),1)) %>% 
+                      arrange(desc(Probability))))
 
 ```
 
 
+
+##Longitudinal Distribution
 The following table shows the distributions longitudinal ordinates.
-```{r}
-final_data %>% group_by(lon_grid) %>% summarise(Count=n(),
-                                                Probability=round(n()/nrow(final_data),4),                            
-                                                Longitude_Minimum=min(place_lon),
-                                                Longitude_Maximum=max(place_lon)) %>% 
-  arrange(desc(Count))
+```{r, echo=FALSE}
+pander(head(final_data %>% group_by(lon_grid) %>% summarise(Count=n(),
+                                                Probability=round(n()/nrow(final_data),2),              
+                                                Longitude_Mean=round(mean(place_lon),1)) %>% 
+  arrange(desc(Probability))))
 ```
 
+
+##Latitudinal Distribution
 The following table shows the distributions of latitudinal ordinates.
 
-```{r}
-final_data %>% group_by(lat_grid) %>% summarise(Count=n(),
-                                                Probability=round(n()/nrow(final_data),4),                            
-                                                Latitude_Minimum=min(place_lat),
-                                                Latitude_Maximum=max(place_lat)) %>% 
-  arrange(desc(Count))
+```{r , echo=FALSE}
+pander(head(final_data %>% group_by(lat_grid) %>% summarise(Count=n(),
+                                                Probability=round(n()/nrow(final_data),2),              
+                                                Latitude_Mean=round(min(place_lat),1)) %>% 
+  arrange(desc(Probability))))
 ```
+
+

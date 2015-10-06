@@ -29,7 +29,7 @@ for (i in 1:nrow(potential_user.df)){
   
   tweets2.df=data.frame()
   
-  minutes=5
+  minutes=20
   for (i in 1:minutes){
     try(file.remove("tweets2.json"))
     filterStream("tweets2.json", timeout = 60, follow=c(user_id),
@@ -89,7 +89,8 @@ for (i in 1:minutes){
 #Combing Taylor's two data sets
 load(paste0("./",user,"3.rda"))
 load(paste0("./",user,"2.rda"))
-final_data=rbind(tweets2.df,tweets3.df)
+# final_data=rbind(tweets2.df,tweets3.df)
+final_data=rbind(tweets3.df,final_data)
 
 
 # load(paste0("./final_data.rda"))
@@ -115,10 +116,11 @@ final_data %>% summarise(Min_Longitude=min(place_lon),Max_Longitude=max(place_lo
 
 map.data <- map_data(map="world")
 points <- data.frame(x = as.numeric(final_data$place_lon), y = as.numeric(final_data$place_lat))
-ggplot(map.data) + 
+g=ggplot(map.data) + 
   geom_map(aes(map_id = region), map = map.data, fill = "white",color = "grey20", size = 0.25) + 
   geom_point(data = points,aes(x = x, y = y), size = 7, alpha = 1/5, color = "darkblue") +
   ggtitle("Locations of Taylor Swift's Tweets")+xlab("Longitude")+ylab("Latitude")
+g
 
 # dividing locations into grids
 grids_x=10
